@@ -57,7 +57,7 @@ public abstract class BaseProcessorUnit : ProcessorUnit {
                 .addFields(createFields(rpe.needsElements, requestCodeProvider))
                 .addMethod(createConstructor())
                 .addMethods(createWithCheckMethods(rpe))
-                .addMethod(createPermissionResultMethod(rpe))
+                .addMethods(createPermissionHandlingMethods(rpe))
                 .addTypes(createPermissionRequestClasses(rpe))
                 .build()
     }
@@ -188,6 +188,45 @@ public abstract class BaseProcessorUnit : ProcessorUnit {
         builder.endControlFlow()
     }
 
+    private fun createPermissionHandlingMethods(rpe: RuntimePermissionsElement): List<MethodSpec> {
+        val methods: ArrayList<MethodSpec> = arrayListOf()
+
+        if (hasNormalPermission(rpe)) {
+            methods.add(createPermissionResultMethod(rpe))
+        }
+
+        if (hasSystemAlertWindowPermission(rpe) || hasWriteSettingPermission(rpe)) {
+            methods.add(createOnActivityResultMethod(rpe))
+        }
+
+        return methods
+    }
+
+    private fun createOnActivityResultMethod(rpe: RuntimePermissionsElement): MethodSpec {
+        val targetParam = "target"
+        val requestCodeParam = "requestCode"
+        val grantResultsParam = "grantResults"
+        val builder = MethodSpec.methodBuilder("onActivityResult")
+                .addModifiers(Modifier.STATIC)
+                .returns(TypeName.VOID)
+                .addParameter(rpe.typeName, targetParam)
+                .addParameter(TypeName.INT, requestCodeParam)
+                .addParameter(ArrayTypeName.of(TypeName.INT), grantResultsParam)
+
+        builder.beginControlFlow("switch (\$N)", requestCodeParam)
+        for (needsMethod in rpe.needsElements) {
+            val needsPermissionParameter = needsMethod.getAnnotation(NeedsPermission::class.java).value[0]
+            if (!ADD_WITH_CHECK_BODY_MAP.containsKey(needsPermissionParameter)) {
+                continue
+            }
+            builder.addCode("case \$N:\n", requestCodeFieldName(needsMethod))
+
+            addResultCaseBody(builder, needsMethod, rpe, targetParam, grantResultsParam)
+        }
+
+        return builder.build()
+    }
+
     private fun createPermissionResultMethod(rpe: RuntimePermissionsElement): MethodSpec {
         val targetParam = "target"
         val requestCodeParam = "requestCode"
@@ -202,6 +241,11 @@ public abstract class BaseProcessorUnit : ProcessorUnit {
         // For each @NeedsPermission method, add a switch case
         builder.beginControlFlow("switch (\$N)", requestCodeParam)
         for (needsMethod in rpe.needsElements) {
+            val needsPermissionParameter = needsMethod.getAnnotation(NeedsPermission::class.java).value[0]
+            if (ADD_WITH_CHECK_BODY_MAP.containsKey(needsPermissionParameter)) {
+                continue
+            }
+
             builder.addCode("case \$N:\n", requestCodeFieldName(needsMethod))
 
             // Delegate switch-case generation to implementing classes
@@ -218,7 +262,10 @@ public abstract class BaseProcessorUnit : ProcessorUnit {
     }
 
     private fun addResultCaseBody(builder: MethodSpec.Builder, needsMethod: ExecutableElement, rpe: RuntimePermissionsElement, targetParam: String, grantResultsParam: String) {
+        val needsPermissionParameter = needsMethod.getAnnotation(NeedsPermission::class.java).value[0]
+
         // Add the conditional for "permission verified"
+        ADD_WITH_CHECK_BODY_MAP[needsPermissionParameter]?.addHasSelfPermissionsCondition(builder, getActivityName(targetParam))
         builder.beginControlFlow("if (\$T.verifyPermissions(\$N))", PERMISSION_UTILS, grantResultsParam)
 
         // Based on whether or not the method has parameters, delegate to the "pending request" object or invoke the method directly
@@ -270,6 +317,36 @@ public abstract class BaseProcessorUnit : ProcessorUnit {
             builder.addStatement("\$N = null", pendingRequestFieldName(needsMethod))
         }
         builder.addStatement("break");
+    }
+
+    private fun hasNormalPermission(rpe: RuntimePermissionsElement): Boolean {
+        rpe.needsElements.forEach {
+            val permissionValue: List<String> = it.getAnnotation(NeedsPermission::class.java).permissionValue()
+            if (!permissionValue.contains(MANIFEST_SYSTEM_ALERT_WINDOW) && !permissionValue.contains(MANIFEST_WRITE_SETTING)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private fun hasSystemAlertWindowPermission(rpe: RuntimePermissionsElement): Boolean {
+        rpe.needsElements.forEach {
+            val permissionValue: List<String> = it.getAnnotation(NeedsPermission::class.java).permissionValue()
+            if (permissionValue.contains(MANIFEST_SYSTEM_ALERT_WINDOW)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private fun hasWriteSettingPermission(rpe: RuntimePermissionsElement): Boolean {
+        rpe.needsElements.forEach {
+            val permissionValue: List<String> = it.getAnnotation(NeedsPermission::class.java).permissionValue()
+            if (permissionValue.contains(MANIFEST_WRITE_SETTING)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private fun createPermissionRequestClasses(rpe: RuntimePermissionsElement): List<TypeSpec> {
