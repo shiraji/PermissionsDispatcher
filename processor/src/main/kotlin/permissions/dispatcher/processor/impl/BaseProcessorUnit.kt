@@ -5,6 +5,8 @@ import permissions.dispatcher.NeedsPermission
 import permissions.dispatcher.processor.ProcessorUnit
 import permissions.dispatcher.processor.RequestCodeProvider
 import permissions.dispatcher.processor.RuntimePermissionsElement
+import permissions.dispatcher.processor.impl.helper.SystemAlertWindowHelper
+import permissions.dispatcher.processor.impl.helper.WriteSettingsHelper
 import permissions.dispatcher.processor.util.*
 import java.util.*
 import javax.lang.model.element.ExecutableElement
@@ -18,6 +20,10 @@ import javax.lang.model.element.Modifier
 public abstract class BaseProcessorUnit : ProcessorUnit {
 
     protected val PERMISSION_UTILS = ClassName.get("permissions.dispatcher", "PermissionUtils")
+
+    private val MANIFEST_WRITE_SETTING = "android.permission.WRITE_SETTINGS"
+    private val MANIFEST_SYSTEM_ALERT_WINDOW = "android.permission.SYSTEM_ALERT_WINDOW"
+    private val ADD_WITH_CHECK_BODY_MAP = hashMapOf(MANIFEST_SYSTEM_ALERT_WINDOW to SystemAlertWindowHelper(), MANIFEST_WRITE_SETTING to WriteSettingsHelper())
 
     /**
      * Creates the JavaFile for the provided @RuntimePermissions element.
@@ -137,6 +143,7 @@ public abstract class BaseProcessorUnit : ProcessorUnit {
         // Add the conditional for when permission has already been granted
         val needsPermissionParameter = needsMethod.getAnnotation(NeedsPermission::class.java).value[0]
         val activityVar = getActivityName(targetParam)
+        ADD_WITH_CHECK_BODY_MAP[needsPermissionParameter]?.addHasSelfPermissionsCondition(builder, activityVar) ?: builder.beginControlFlow("if (\$T.hasSelfPermissions(\$N, \$N))", PERMISSION_UTILS, activityVar, permissionField)
         builder.addCode(CodeBlock.builder()
                 .add("\$N.\$N(", targetParam, needsMethod.simpleString())
                 .add(varargsParametersCodeBlock(needsMethod))
@@ -174,7 +181,7 @@ public abstract class BaseProcessorUnit : ProcessorUnit {
         }
 
         // Add the branch for "request permission"
-        addRequestPermissionsStatement(builder, targetParam, permissionField, requestCodeField)
+        ADD_WITH_CHECK_BODY_MAP[needsPermissionParameter]?.addRequestPermissionsStatement(builder, activityVar, requestCodeField) ?: addRequestPermissionsStatement(builder, targetParam, permissionField, requestCodeField)
         if (onRationale != null) {
             builder.endControlFlow()
         }
@@ -316,7 +323,8 @@ public abstract class BaseProcessorUnit : ProcessorUnit {
                 .returns(TypeName.VOID)
                 .addStatement("\$T target = \$N.get()", targetType, weakFieldName)
                 .addStatement("if (target == null) return")
-        addRequestPermissionsStatement(proceedMethod, targetParam, permissionFieldName(needsMethod), requestCodeFieldName(needsMethod))
+        val requestCodeField = requestCodeFieldName(needsMethod)
+        ADD_WITH_CHECK_BODY_MAP[needsMethod.getAnnotation(NeedsPermission::class.java).value[0]]?.addRequestPermissionsStatement(proceedMethod, getActivityName(targetParam), requestCodeField) ?: addRequestPermissionsStatement(proceedMethod, targetParam, permissionFieldName(needsMethod), requestCodeField)
         builder.addMethod(proceedMethod.build())
 
         // Add cancel() override method
