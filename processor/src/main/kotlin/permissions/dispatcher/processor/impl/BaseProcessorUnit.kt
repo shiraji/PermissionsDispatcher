@@ -39,9 +39,9 @@ public abstract class BaseProcessorUnit : ProcessorUnit {
 
     abstract fun addRequestPermissionsStatement(builder: MethodSpec.Builder, targetParam: String, permissionField: String, requestCodeField: String)
 
-    abstract fun addHasSelfPermissionsCondition(builder: MethodSpec.Builder, targetParam: String, permissionField: String)
-
     abstract fun addShouldShowRequestPermissionRationaleCondition(builder: MethodSpec.Builder, targetParam: String, permissionField: String)
+
+    abstract fun getActivityName(targetParam: String): String
 
     /* Begin private */
 
@@ -135,8 +135,8 @@ public abstract class BaseProcessorUnit : ProcessorUnit {
         val permissionField = permissionFieldName(needsMethod)
 
         // Add the conditional for when permission has already been granted
-        addHasSelfPermissionsCondition(builder, targetParam, permissionField)
-        //        builder.beginControlFlow("if (\$T.hasSelfPermissions(\$N, \$N))", PERMISSION_UTILS, targetParam, permissionField)
+        val needsPermissionParameter = needsMethod.getAnnotation(NeedsPermission::class.java).value[0]
+        val activityVar = getActivityName(targetParam)
         builder.addCode(CodeBlock.builder()
                 .add("\$N.\$N(", targetParam, needsMethod.simpleString())
                 .add(varargsParametersCodeBlock(needsMethod))
