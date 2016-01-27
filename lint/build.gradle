@@ -11,6 +11,12 @@ dependencies {
     compile "com.android.tools.lint:lint-api:$LINT_VERSION"
     compile "com.android.tools.lint:lint-checks:$LINT_VERSION"
 
+    testCompile project(':processor')
+    testCompile(project(':library')) {
+        exclude group: "com.android.support"
+    }
+    testCompile "org.jetbrains.kotlin:kotlin-stdlib:$KOTLIN_VERSION"
+    testCompile "com.squareup:javapoet:$JAVAPOET_VERSION"
     testCompile "junit:junit:$JUNIT_VERSION"
     testCompile "com.android.tools.lint:lint:$LINT_VERSION"
     testCompile "com.android.tools.lint:lint-tests:$LINT_VERSION"
