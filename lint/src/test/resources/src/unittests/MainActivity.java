@@ -1,4 +1,4 @@
-package unittests;
+package src.unittests;
 
 import android.Manifest;
 import android.app.Activity;

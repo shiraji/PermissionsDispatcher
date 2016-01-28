@@ -25,7 +25,7 @@ public class LintTestCase extends TestCase {
 
     @Test
     public void testFoo() throws Exception {
-        List<Warning> lintResult = lint.files("unittests/MainActivity.java");
+        List<Warning> lintResult = lint.files("src/unittests/MainActivity.java");
         assertThat(lintResult).hasWarnings(1).in("MainActivity.java");
     }
 }
