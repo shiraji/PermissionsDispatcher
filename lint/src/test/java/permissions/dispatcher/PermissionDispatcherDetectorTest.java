@@ -24,12 +24,12 @@ public class PermissionDispatcherDetectorTest extends LintDetectorTest {
 
     @Override
     protected Detector getDetector() {
-        return new OnRequestPermissionsResultCallExistDetector();
+        return new NoWithCheckCallInOnResumeDetector();
     }
 
     @Override
     protected List<Issue> getIssues() {
-        return Collections.singletonList(OnRequestPermissionsResultCallExistDetector.ISSUE);
+        return Collections.singletonList(NoWithCheckCallInOnResumeDetector.ISSUE);
     }
 
     @Override
@@ -64,7 +64,7 @@ public class PermissionDispatcherDetectorTest extends LintDetectorTest {
 
     @Test
     public void testFoo() throws Exception {
-        mEnabled = Collections.singleton(OnRequestPermissionsResultCallExistDetector.ISSUE);
+        mEnabled = Collections.singleton(NoWithCheckCallInOnResumeDetector.ISSUE);
 
         assertEquals(
                 "src/pkg/MainActivity.java:16: Error: Trying to access permission-protected method directly. [CallNeedsPermission]\n" +
