@@ -37,7 +37,7 @@ public class NoWithCheckCallInOnResumeDetector extends Detector implements Detec
     private class AnnotationChecker extends ForwardingAstVisitor {
         JavaContext javaContext;
 
-        private boolean hasRuntimePermission;
+        private boolean hasRuntimePermissionAnnotation;
 
         public AnnotationChecker(JavaContext context) {
             javaContext = context;
@@ -55,10 +55,9 @@ public class NoWithCheckCallInOnResumeDetector extends Detector implements Detec
 
         @Override
         public boolean visitMethodDeclaration(MethodDeclaration node) {
-
-
-
-            return super.visitMethodDeclaration(node);
+            if (hasRuntimePermissionAnnotation && "public void onResume(int, java.lang.String[], int[])".equals(context.resolve(node).getSignature().trim())) {
+                return super.visitMethodDeclaration(node);
+            }
         }
     }
 }
