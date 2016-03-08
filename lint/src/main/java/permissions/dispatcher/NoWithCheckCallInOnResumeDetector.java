@@ -95,7 +95,7 @@ public class NoWithCheckCallInOnResumeDetector extends Detector implements Detec
             Category.CORRECTNESS,
             1,
             Severity.WARNING,
-            new Implementation(NoWithCheckCallInOnResumeDetector.class, EnumSet.of(Scope.ALL_JAVA_FILES)));
+            new Implementation(NoWithCheckCallInOnResumeDetector.class, EnumSet.of(Scope.JAVA_FILE)));
 
     @Override
     public AstVisitor createJavaVisitor(JavaContext context) {
