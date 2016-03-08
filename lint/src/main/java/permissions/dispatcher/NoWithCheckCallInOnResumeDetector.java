@@ -109,8 +109,28 @@ public class NoWithCheckCallInOnResumeDetector extends Detector implements Detec
     private class AnnotationChecker extends ForwardingAstVisitor {
         JavaContext javaContext;
 
+        private boolean hasRuntimePermission;
+
         public AnnotationChecker(JavaContext context) {
             javaContext = context;
+        }
+
+        @Override
+        public boolean visitAnnotation(Annotation node) {
+            if (!javaContext.isEnabled(ISSUE)) {
+                // stop executing lint for this ISSUE
+                return true;
+            }
+
+            return super.visitAnnotation(node);
+        }
+
+        @Override
+        public boolean visitMethodDeclaration(MethodDeclaration node) {
+
+
+
+            return super.visitMethodDeclaration(node);
         }
     }
 }
