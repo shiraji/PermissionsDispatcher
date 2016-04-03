@@ -27,7 +27,7 @@ public class CallOnRequestPermissionsResultDetector extends Detector implements 
             Category.CORRECTNESS,
             5,
             Severity.ERROR,
-            new Implementation(CallOnRequestPermissionsResultDetector.class, EnumSet.of(Scope.JAVA_FILE)));
+            new Implementation(CallOnRequestPermissionsResultDetector.class, EnumSet.of(Scope.CLASS_FILE)));
 
     static final Set<String> RUNTIME_PERMISSIONS_NAME = new HashSet<String>() {{
         add("RuntimePermissions");
