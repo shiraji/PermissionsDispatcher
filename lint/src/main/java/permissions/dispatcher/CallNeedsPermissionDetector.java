@@ -2,28 +2,16 @@ package permissions.dispatcher;
 
 
 import com.android.tools.lint.client.api.JavaParser;
-import com.android.tools.lint.detector.api.Category;
-import com.android.tools.lint.detector.api.Detector;
-import com.android.tools.lint.detector.api.Implementation;
-import com.android.tools.lint.detector.api.Issue;
-import com.android.tools.lint.detector.api.JavaContext;
-import com.android.tools.lint.detector.api.Scope;
-import com.android.tools.lint.detector.api.Severity;
-
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import lombok.ast.Annotation;
-import lombok.ast.AstVisitor;
-import lombok.ast.ClassDeclaration;
-import lombok.ast.ForwardingAstVisitor;
+import com.android.tools.lint.detector.api.*;
+import com.intellij.openapi.util.Condition;
+import com.intellij.psi.*;
+import com.intellij.psi.util.PsiTreeUtil;
 import lombok.ast.MethodInvocation;
 
+import java.util.*;
 
-public class CallNeedsPermissionDetector extends Detector implements Detector.JavaScanner {
+
+public class CallNeedsPermissionDetector extends Detector implements Detector.JavaPsiScanner {
     public static final Issue ISSUE = Issue.create("CallNeedsPermission",
             "Call the corresponding \"withCheck\" method of the generated PermissionsDispatcher class instead",
             "Directly invoking a method annotated with @NeedsPermission may lead to misleading behaviour on devices running Marshmallow and up. Therefore, it is advised to use the generated PermissionsDispatcher class instead, which provides a \"withCheck\" method that safely handles runtime permissions.",
@@ -35,7 +23,7 @@ public class CallNeedsPermissionDetector extends Detector implements Detector.Ja
     static List<String> generatedClassNames = new ArrayList<String>();
 
     @Override
-    public AstVisitor createJavaVisitor(JavaContext context) {
+    public JavaElementVisitor createPsiVisitor(JavaContext context) {
         if (context.getPhase() == 1) {
             // find out which class has RuntimePermissions
             return new AnnotationChecker(context);
@@ -47,7 +35,20 @@ public class CallNeedsPermissionDetector extends Detector implements Detector.Ja
         return null;
     }
 
-    private static class AnnotationChecker extends ForwardingAstVisitor {
+//    @Override
+//    public AstVisitor createJavaVisitor(JavaContext context) {
+//        if (context.getPhase() == 1) {
+//            // find out which class has RuntimePermissions
+//            return new AnnotationChecker(context);
+//        } else if (context.getPhase() == 2) {
+//            // find out which class call method with NeedPermission
+//            // exclude class with above with name XxxPermissionsDispatcher in the same package.
+//            return new MethodCallChecker(context);
+//        }
+//        return null;
+//    }
+
+    private static class AnnotationChecker extends JavaElementVisitor {
         private final JavaContext context;
         private Set<String> matchingAnnotationTypeNames;
 
@@ -60,53 +61,113 @@ public class CallNeedsPermissionDetector extends Detector implements Detector.Ja
         }
 
         @Override
-        public boolean visitAnnotation(Annotation node) {
+        public void visitAnnotation(PsiAnnotation annotation) {
             if (!context.isEnabled(ISSUE)) {
-                return super.visitAnnotation(node);
+                super.visitAnnotation(annotation);
             }
 
-            String type = node.astAnnotationTypeReference().getTypeName();
-            if (!matchingAnnotationTypeNames.contains(type)) {
-                return super.visitAnnotation(node);
+            if (!matchingAnnotationTypeNames.contains(annotation.getQualifiedName()) {
+                super.visitAnnotation(annotation);
             }
 
-            JavaParser.ResolvedNode resolvedNode = context.resolve(node.getParent());
-            if (resolvedNode instanceof JavaParser.ResolvedClass) {
-                generatedClassNames.add(resolvedNode.getName() + "PermissionsDispatcher");
-                // let's check method call!
-                context.requestRepeat(new CallNeedsPermissionDetector(), EnumSet.of(Scope.ALL_JAVA_FILES));
-            }
-            return super.visitAnnotation(node);
+            PsiClass psiClass = (PsiClass) PsiTreeUtil.findFirstParent(annotation, true, new Condition<PsiElement>() {
+                @Override
+                public boolean value(PsiElement psiElement) {
+                    return psiElement instanceof PsiClass;
+                }
+            });
+
+            generatedClassNames.add(psiClass.getName() + "PermissionsDispatcher");
         }
+
+//        @Override
+//        public boolean visitAnnotation(Annotation node) {
+//            if (!context.isEnabled(ISSUE)) {
+//                return super.visitAnnotation(node);
+//            }
+//
+//            String type = node.astAnnotationTypeReference().getTypeName();
+//            if (!matchingAnnotationTypeNames.contains(type)) {
+//                return super.visitAnnotation(node);
+//            }
+//
+//            JavaParser.ResolvedNode resolvedNode = context.resolve(node.getParent());
+//            if (resolvedNode instanceof JavaParser.ResolvedClass) {
+//                generatedClassNames.add(resolvedNode.getName() + "PermissionsDispatcher");
+//                // let's check method call!
+//                context.requestRepeat(new CallNeedsPermissionDetector(), EnumSet.of(Scope.ALL_JAVA_FILES));
+//            }
+//            return super.visitAnnotation(node);
+//        }
     }
 
-    private class MethodCallChecker extends ForwardingAstVisitor {
+    private class MethodCallChecker extends JavaElementVisitor {
         JavaContext javaContext;
 
         public MethodCallChecker(JavaContext context) {
             javaContext = context;
         }
 
-        @Override
-        public boolean visitClassDeclaration(ClassDeclaration node) {
-            // Ignore a class that is generated by PermissionsDispatcher
-            return generatedClassNames.contains(javaContext.resolve(node).getName());
-        }
+//        @Override
+//        public void visitClass(PsiClass aClass) {
+//
+//            generatedClassNames.contains(aClass.getName())
+//
+//        }
+//
+//        @Override
+//        public boolean visitClassDeclaration(ClassDeclaration node) {
+//            // Ignore a class that is generated by PermissionsDispatcher
+//            return generatedClassNames.contains(javaContext.resolve(node).getName());
+//        }
+
+
+//        @Override
+//        public void visitMethodCallExpression(PsiMethodCallExpression expression) {
+//            PsiClass psiClass = (PsiClass) PsiTreeUtil.findFirstParent(expression, true, new Condition<PsiElement>() {
+//                @Override
+//                public boolean value(PsiElement psiElement) {
+//                    return psiElement instanceof PsiClass;
+//                }
+//            });
+//
+//            if (!generatedClassNames.contains(psiClass)) return;
+//
+//            expression.get
+//
+//        }
+
 
         @Override
-        public boolean visitMethodInvocation(MethodInvocation node) {
-            JavaParser.ResolvedNode resolved = javaContext.resolve(node);
-            if (!(resolved instanceof JavaParser.ResolvedMethod)) {
-                return super.visitMethodInvocation(node);
-            }
-            JavaParser.ResolvedMethod method = (JavaParser.ResolvedMethod) resolved;
-            JavaParser.ResolvedAnnotation annotation = method.getAnnotation("permissions.dispatcher.NeedsPermission");
-            if (annotation == null) {
-                return super.visitMethodInvocation(node);
-            }
+        public void visitMethod(PsiMethod method) {
+            PsiClass psiClass = (PsiClass) PsiTreeUtil.findFirstParent(method, true, new Condition<PsiElement>() {
+                @Override
+                public boolean value(PsiElement psiElement) {
+                    return psiElement instanceof PsiClass;
+                }
+            });
 
-            javaContext.report(ISSUE, javaContext.getLocation(node), "Trying to access permission-protected method directly");
-            return super.visitMethodInvocation(node);
+            if (psiClass == null || !generatedClassNames.contains(psiClass.getName())) return;
+
+
+            // find annotation from method and compare
+
         }
+
+//        @Override
+//        public boolean visitMethodInvocation(MethodInvocation node) {
+//            JavaParser.ResolvedNode resolved = javaContext.resolve(node);
+//            if (!(resolved instanceof JavaParser.ResolvedMethod)) {
+//                return super.visitMethodInvocation(node);
+//            }
+//            JavaParser.ResolvedMethod method = (JavaParser.ResolvedMethod) resolved;
+//            JavaParser.ResolvedAnnotation annotation = method.getAnnotation("permissions.dispatcher.NeedsPermission");
+//            if (annotation == null) {
+//                return super.visitMethodInvocation(node);
+//            }
+//
+//            javaContext.report(ISSUE, javaContext.getLocation(node), "Trying to access permission-protected method directly");
+//            return super.visitMethodInvocation(node);
+//        }
     }
 }

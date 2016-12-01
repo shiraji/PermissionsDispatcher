@@ -13,8 +13,8 @@ dependencies {
 
     testCompile "junit:junit:$JUNIT_VERSION"
     testCompile "com.android.tools.lint:lint:$LINT_VERSION"
-    testCompile "com.android.tools.lint:lint-tests:$LINT_VERSION"
-    testCompile "com.android.tools:testutils:$LINT_VERSION"
+//    testCompile "com.android.tools.lint:lint-tests:$LINT_VERSION"
+//    testCompile "com.android.tools:testutils:$LINT_VERSION"
 
     lintChecks files(jar)
 }
