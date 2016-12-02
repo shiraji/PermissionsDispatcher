@@ -1,12 +1,10 @@
 package permissions.dispatcher;
 
 
-import com.android.tools.lint.client.api.JavaParser;
 import com.android.tools.lint.detector.api.*;
 import com.intellij.openapi.util.Condition;
 import com.intellij.psi.*;
 import com.intellij.psi.util.PsiTreeUtil;
-import lombok.ast.MethodInvocation;
 
 import java.util.*;
 
@@ -66,7 +64,7 @@ public class CallNeedsPermissionDetector extends Detector implements Detector.Ja
                 super.visitAnnotation(annotation);
             }
 
-            if (!matchingAnnotationTypeNames.contains(annotation.getQualifiedName()) {
+            if (!matchingAnnotationTypeNames.contains(annotation.getQualifiedName())) {
                 super.visitAnnotation(annotation);
             }
 
@@ -146,12 +144,10 @@ public class CallNeedsPermissionDetector extends Detector implements Detector.Ja
                     return psiElement instanceof PsiClass;
                 }
             });
-
             if (psiClass == null || !generatedClassNames.contains(psiClass.getName())) return;
-
-
-            // find annotation from method and compare
-
+            PsiAnnotation annotation = method.getModifierList().findAnnotation("permissions.dispatcher.NeedsPermission");
+            if (annotation == null) return;
+            javaContext.report(ISSUE, javaContext.getLocation(method), "Trying to access permission-protected method directly");
         }
 
 //        @Override
