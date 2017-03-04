@@ -132,6 +132,11 @@ public class ProcessorTestSuite extends TestSuite {
         assertJavaSource(Source.DuplicatesInListsActivity);
     }
 
+    @Test public void needsPermissionMethodOverload() {
+        expectRuntimeException("'showCamera()' has duplicated '@NeedsPermission' method. The method annotated with '@NeedsPermission' must has the unique name.");
+        assertJavaSource(Source.needsPermissionMethodOverload);
+    }
+
     @Test public void onePermissionActivity() {
         assertJavaSource(Source.OnePermissionActivity);
     }

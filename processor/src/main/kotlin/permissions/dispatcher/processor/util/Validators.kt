@@ -122,3 +122,12 @@ fun <A : Annotation> checkMixPermissionType(items: List<ExecutableElement>, anno
         }
     }
 }
+
+fun checkMethodOverloads(items: List<ExecutableElement>) {
+    items.forEach {
+        item ->
+        items.firstOrNull { it.simpleName == item.simpleName }?.let {
+            throw AmbiguousMethodException(item)
+        }
+    }
+}

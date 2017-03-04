@@ -5887,4 +5887,37 @@ public final class Source {
         }
     };
 
+    public static final BaseTest needsPermissionMethodOverload = new BaseTest() {
+        @Override
+        protected String getName() {
+            return "MyActivity";
+        }
+
+        @Override
+        protected String[] getActualSource() {
+            return new String[]{
+                    "package tests;",
+                    "import android.Manifest;",
+                    "import android.app.Activity;",
+                    "import permissions.dispatcher.RuntimePermissions;",
+                    "import permissions.dispatcher.NeedsPermission;",
+                    "import permissions.dispatcher.OnPermissionDenied;",
+                    "@RuntimePermissions",
+                    "public class MyActivity extends Activity {",
+                    "   @NeedsPermission({Manifest.permission.CAMERA,Manifest.permission.WRITE_EXTERNAL_STORAGE})",
+                    "   public void showCamera() {",
+                    "   }",
+                    "   @NeedsPermission({Manifest.permission.CAMERA,Manifest.permission.WRITE_EXTERNAL_STORAGE})",
+                    "   public void showCamera(int foo) {",
+                    "   }",
+                    "}"
+            };
+        }
+
+        @Override
+        protected String[] getExpectSource() {
+            return EMPTY_SOURCE;
+        }
+    };
+
 }
