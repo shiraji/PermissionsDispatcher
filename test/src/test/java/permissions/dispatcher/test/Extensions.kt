@@ -39,16 +39,18 @@ fun mockGetActivity(fragment: Fragment, result: AppCompatActivity) {
     PowerMockito.`when`(fragment.activity).thenReturn(result)
 }
 
-fun getRequestCameraConstant(clazz: Class<*>): Int {
-    val field = clazz.getDeclaredField("REQUEST_SHOWCAMERA")
-    field.isAccessible = true
-    return field.getInt(null)
+fun getRequestCameraConstant(clazz: Class<*>, fieldName: String = "REQUEST_SHOWCAMERA"): Int {
+    return getField(clazz, fieldName) as Int
 }
 
-fun getPermissionRequestConstant(clazz: Class<*>): Array<String> {
-    val field = clazz.getDeclaredField("PERMISSION_SHOWCAMERA")
+fun getPermissionRequestConstant(clazz: Class<*>, fieldName: String = "PERMISSION_SHOWCAMERA"): Array<String> {
+    return getField(clazz, fieldName) as Array<String>
+}
+
+private fun getField(clazz: Class<*>, fieldName: String): Any? {
+    val field = clazz.getDeclaredField(fieldName)
     field.isAccessible = true
-    return field.get(null) as Array<String>
+    return field.get(null)
 }
 
 fun overwriteCustomManufacture(manufactureText: String = "Xiaomi") {
